@@ -561,7 +561,7 @@ namespace pqxx_conn
         string full_msg {"The database transaction failed. " + msg};
         _logger->error("Error: An unexpected error occurred when trying to run the database query");
         _logger->error("Caught error at: {} Error: \"{}\"", location, what);
-        _logger->error("Error: Faild query: {}", query);
+        _logger->error("Error: Failed query: {}", query);
         _logger->error("Throwing storage error with message: \"{}\"", full_msg);
         Tango::Except::throw_exception("Storage Error", full_msg, location);
     }
