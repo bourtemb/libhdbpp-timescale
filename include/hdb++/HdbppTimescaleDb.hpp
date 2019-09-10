@@ -20,7 +20,7 @@
 #ifndef _HDBPP_TIMESCALE_HPP
 #define _HDBPP_TIMESCALE_HPP
 
-#include <libhdb++/LibHdb++.h>
+#include <hdb++/AbstractDB.h>
 #include <string>
 #include <tango.h>
 #include <vector>

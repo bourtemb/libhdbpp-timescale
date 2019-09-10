@@ -268,8 +268,8 @@ AbstractDB *HdbppTimescaleDbFactory::create_db(vector<string> configuration)
 
 //=============================================================================
 //=============================================================================
-DBFactory *getDBFactory()
+hdbpp::DBFactory *getDBFactory()
 {
     auto *factory = new hdbpp::HdbppTimescaleDbFactory();
-    return static_cast<DBFactory*>(factory);
+    return static_cast<hdbpp::DBFactory*>(factory);
 }

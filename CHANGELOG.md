@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- Depend on new libhdb++ library as a submodule
+
+## [0.9.2] - 2019-09-10
+
 ### Fixed
 
 - Close logging down in destructor so linked device server can be restarted.

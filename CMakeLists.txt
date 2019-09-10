@@ -38,6 +38,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Build options
+option(FETCH_LIBHDBPP "Download and build using a local copy of libhdb++" OFF)
 option(BUILD_UNIT_TESTS "Build unit tests" OFF)
 option(BUILD_BENCHMARK_TESTS "Build benchmarking tests (Forces RELEASE build)" OFF)
 option(ENABLE_CLANG "Enable clang code and layout analysis" OFF)
@@ -80,6 +81,26 @@ find_package(Tango)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
+if(FETCH_LIBHDBPP)
+    set(LIBHDBPP_VERSION "exp-refactor")
+    
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchLibHdbpp.cmake.in ${CMAKE_BINARY_DIR}/libhdbpp-download/CMakeLists.txt)
+
+    execute_process(COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" .
+        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/libhdbpp-download" )
+
+    execute_process(COMMAND "${CMAKE_COMMAND}" --build .
+        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/libhdbpp-download" )
+
+    add_subdirectory("${CMAKE_BINARY_DIR}/libhdbpp-src" "${CMAKE_BINARY_DIR}/libhdbpp-build" EXCLUDE_FROM_ALL)
+
+    # For ease of use, we set the libhdb++ output to our projects build directory,
+    # making linking and running easy
+    set_target_properties(libhdbpp_shared_library
+        PROPERTIES
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+endif(FETCH_LIBHDBPP)
+
 # Thirdparty Integration -----------------------------------
 
 # build google benchmark (target: benchmark)
@@ -91,7 +112,6 @@ add_subdirectory(thirdparty/google/benchmark EXCLUDE_FROM_ALL)
 add_subdirectory(thirdparty/google/googletest/googletest EXCLUDE_FROM_ALL)
 
 # Include the thirdparty projects
-add_subdirectory(thirdparty/libhdbpp EXCLUDE_FROM_ALL)
 add_subdirectory(thirdparty/libpqxx  EXCLUDE_FROM_ALL)
 add_subdirectory(thirdparty/spdlog  EXCLUDE_FROM_ALL)
 add_subdirectory(thirdparty/Catch2  EXCLUDE_FROM_ALL)
@@ -137,8 +157,13 @@ add_subdirectory(src)
 add_library(libhdbpp_timescale_shared_library SHARED ${SRC_FILES})
 
 target_link_libraries(libhdbpp_timescale_shared_library 
-    PUBLIC ${TDB_FOUND_LIBRARIES} pqxx_static libhdbpp_headers spdlog Threads::Threads
-    PRIVATE TangoInterfaceLibrary)
+    PUBLIC 
+        ${TDB_FOUND_LIBRARIES} 
+        pqxx_static 
+        "$<$<BOOL:${FETCH_LIBHDBPP}>:libhdbpp_headers>" 
+        spdlog Threads::Threads
+    PRIVATE 
+        TangoInterfaceLibrary)
 
 target_include_directories(libhdbpp_timescale_shared_library 
     PUBLIC
@@ -170,8 +195,13 @@ target_compile_options(libhdbpp_timescale_shared_library
 add_library(libhdbpp_timescale_static_library STATIC EXCLUDE_FROM_ALL ${SRC_FILES})
 
 target_link_libraries(libhdbpp_timescale_static_library 
-    PUBLIC ${TDB_FOUND_LIBRARIES} pqxx_static libhdbpp_headers spdlog Threads::Threads
-    PRIVATE TangoInterfaceLibrary)
+    PUBLIC 
+        ${TDB_FOUND_LIBRARIES} 
+        pqxx_static 
+        "$<$<BOOL:${FETCH_LIBHDBPP}>:libhdbpp_headers>" 
+        spdlog Threads::Threads
+    PRIVATE 
+        TangoInterfaceLibrary)
 
 target_include_directories(libhdbpp_timescale_static_library 
     PUBLIC
