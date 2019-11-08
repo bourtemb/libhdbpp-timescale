@@ -29,6 +29,7 @@
 #include <pqxx/pqxx>
 #include <string>
 #include <tuple>
+#include <locale>
 
 using namespace std;
 using namespace pqxx;
@@ -287,8 +288,10 @@ SCENARIO("Storing Attributes in the database", "[db-access][hdbpp-db-access][db-
                     REQUIRE(attr_row.at(CONF_COL_LAST_NAME).as<string>() == TestAttrName);
                     REQUIRE(attr_row.at(CONF_COL_TABLE_NAME).as<string>() == QueryBuilder().tableName(traits));
                     REQUIRE(attr_row.at(CONF_COL_TYPE_ID).as<int>() == type_row.at(CONF_TYPE_COL_TYPE_ID).as<int>());
+
                     REQUIRE(attr_row.at(CONF_COL_FORMAT_TYPE_ID).as<int>() ==
                         format_row.at(CONF_FORMAT_COL_FORMAT_ID).as<int>());
+
                     REQUIRE(attr_row.at(CONF_COL_WRITE_TYPE_ID).as<int>() ==
                         access_row.at(CONF_WRITE_COL_WRITE_ID).as<int>());
                 }
@@ -304,6 +307,75 @@ SCENARIO("Storing Attributes in the database", "[db-access][hdbpp-db-access][db-
                                           TestAttrMember,
                                           TestAttrName,
                                           traits),
+                        Tango::DevFailed);
+                }
+            }
+        }
+        WHEN("Storing a test attribute data set to the database in uppercase")
+        {
+            auto param_to_upper = [](auto param) {
+                locale loc;
+                string tmp;
+
+                for (string::size_type i = 0; i < param.length(); ++i)
+                    tmp += toupper(param[i], loc);
+
+                return tmp;
+            };
+
+            conn.storeAttribute(
+                param_to_upper(TestAttrFinalName), 
+                param_to_upper(TestAttrCs), 
+                param_to_upper(TestAttrDomain), 
+                param_to_upper(TestAttrFamily), 
+                param_to_upper(TestAttrMember), 
+                param_to_upper(TestAttrName), traits);
+
+            THEN("The data exists in the database, and can be read back and verified")
+            {
+                {
+                    pqxx::work tx {test_conn};
+                    auto attr_row(tx.exec1("SELECT * FROM " + CONF_TABLE_NAME));
+
+                    auto type_row(tx.exec1("SELECT " + CONF_TYPE_COL_TYPE_ID + " FROM " + CONF_TYPE_TABLE_NAME +
+                        " WHERE " + CONF_TYPE_COL_TYPE_NUM + " = " + std::to_string(traits.type())));
+
+                    auto format_row(tx.exec1("SELECT " + CONF_FORMAT_COL_FORMAT_ID + " FROM " + CONF_FORMAT_TABLE_NAME +
+                        " WHERE " + CONF_FORMAT_COL_FORMAT_NUM + " = " + std::to_string(traits.formatType())));
+
+                    auto access_row(tx.exec1("SELECT " + CONF_WRITE_COL_WRITE_ID + " FROM " + CONF_WRITE_TABLE_NAME +
+                        " WHERE " + CONF_WRITE_COL_WRITE_NUM + " = " + std::to_string(traits.writeType())));
+
+                    tx.commit();
+
+                    REQUIRE(attr_row.at(CONF_COL_NAME).as<string>() == param_to_upper(TestAttrFQDName));
+                    REQUIRE(attr_row.at(CONF_COL_CS_NAME).as<string>() == param_to_upper(TestAttrCs));
+                    REQUIRE(attr_row.at(CONF_COL_DOMAIN).as<string>() == param_to_upper(TestAttrDomain));
+                    REQUIRE(attr_row.at(CONF_COL_FAMILY).as<string>() == param_to_upper(TestAttrFamily));
+                    REQUIRE(attr_row.at(CONF_COL_MEMBER).as<string>() == param_to_upper(TestAttrMember));
+                    REQUIRE(attr_row.at(CONF_COL_LAST_NAME).as<string>() == param_to_upper(TestAttrName));
+                    REQUIRE(attr_row.at(CONF_COL_TABLE_NAME).as<string>() == QueryBuilder().tableName(traits));
+
+                    REQUIRE(attr_row.at(CONF_COL_TYPE_ID).as<int>() == type_row.at(CONF_TYPE_COL_TYPE_ID).as<int>());
+
+                    REQUIRE(attr_row.at(CONF_COL_FORMAT_TYPE_ID).as<int>() ==
+                        format_row.at(CONF_FORMAT_COL_FORMAT_ID).as<int>());
+
+                    REQUIRE(attr_row.at(CONF_COL_WRITE_TYPE_ID).as<int>() ==
+                        access_row.at(CONF_WRITE_COL_WRITE_ID).as<int>());
+                }
+            }
+            AND_WHEN("Trying to store the attribute again")
+            {
+                THEN("An exception is throw as the entry already exists in the database")
+                {
+                    REQUIRE_THROWS_AS(            conn.storeAttribute(
+                param_to_upper(TestAttrFinalName), 
+                param_to_upper(TestAttrCs), 
+                param_to_upper(TestAttrDomain), 
+                param_to_upper(TestAttrFamily), 
+                param_to_upper(TestAttrMember), 
+                param_to_upper(TestAttrName), traits),
                         Tango::DevFailed);
                 }
             }
